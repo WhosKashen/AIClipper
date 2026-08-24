@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keyframe — AI Highlight Clipper</title>
+<meta name="description" content="Find and cut the best moments from any video, right in your browser.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><rect width=%2224%22 height=%2224%22 rx=%225%22 fill=%22%2312151C%22/><path d=%22M9 7l8 5-8 5V7z%22 fill=%22%23F0B429%22/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 7l8 5-8 5V7z" fill="currentColor"/></svg>
+    </span>
+    <span class="brand-name">KEYFRAME</span>
+  </div>
+  <button class="btn-icon" id="settingsToggle" type="button" aria-label="Settings" aria-expanded="false" aria-controls="settingsPanel">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="12" r="3.2"/>
+      <path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l1.9-1.5-2-3.4-2.2.9a7.7 7.7 0 0 0-2.6-1.5L14.1 2h-4l-.4 2.9a7.7 7.7 0 0 0-2.6 1.5l-2.2-.9-2 3.4L4.6 10.5a7.6 7.6 0 0 0 0 3L2.7 15l2 3.4 2.2-.9a7.7 7.7 0 0 0 2.6 1.5l.4 2.9h4l.4-2.9a7.7 7.7 0 0 0 2.6-1.5l2.2.9 2-3.4-1.9-1.5z"/>
+    </svg>
+  </button>
+</header>
+
+<section class="settings-panel" id="settingsPanel" hidden>
+  <div class="settings-grid">
+    <label class="field">
+      <span class="field-label">Anthropic API key</span>
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+    </label>
+    <p class="field-hint">Stored only in this browser and sent directly to Anthropic when you run a search — it never passes through any server of ours. <a href="https://console.claude.com/settings/keys" target="_blank" rel="noopener">Get a key ↗</a></p>
+
+    <div class="field-row">
+      <label class="field">
+        <span class="field-label">Clips to find</span>
+        <select id="clipCountInput">
+          <option value="3">3</option>
+          <option value="5" selected>5</option>
+          <option value="8">8</option>
+          <option value="10">10</option>
+        </select>
+      </label>
+      <label class="field">
+        <span class="field-label">Target length</span>
+        <select id="clipLengthInput">
+          <option value="20">~20 sec</option>
+          <option value="45" selected>~45 sec</option>
+          <option value="60">~60 sec</option>
+          <option value="90">~90 sec</option>
+        </select>
+      </label>
+    </div>
+  </div>
+</section>
+
+<main class="container">
+
+  <section class="step" aria-labelledby="step1Heading">
+    <h2 id="step1Heading"><span class="step-number">01</span> Add your video</h2>
+
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" id="tabUpload" aria-controls="panelUpload" class="tab active" type="button">Upload / Video URL</button>
+      <button role="tab" aria-selected="false" id="tabYoutube" aria-controls="panelYoutube" class="tab" type="button">YouTube link</button>
+    </div>
+
+    <div id="panelUpload" role="tabpanel" aria-labelledby="tabUpload" class="tab-panel active">
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Choose a video file">
+        <input type="file" id="fileInput" accept="video/*" hidden>
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+        <p>Drop a video file here, or <span class="link-text">browse</span></p>
+      </div>
+      <div class="divider"><span>or</span></div>
+      <label class="field">
+        <span class="field-label">Direct video URL</span>
+        <input type="url" id="videoUrlInput" placeholder="https://example.com/video.mp4">
+      </label>
+      <p class="field-hint">Works only if the host allows cross-origin access. If it fails, download the file and upload it instead.</p>
+      <video id="sourcePreview" hidden controls playsinline></video>
+    </div>
+
+    <div id="panelYoutube" role="tabpanel" aria-labelledby="tabYoutube" class="tab-panel" hidden>
+      <label class="field">
+        <span class="field-label">YouTube link</span>
+        <input type="url" id="youtubeUrlInput" placeholder="https://www.youtube.com/watch?v=...">
+      </label>
+      <div id="youtubeEmbedWrap" class="youtube-embed-wrap" hidden>
+        <div id="youtubeEmbed"></div>
+      </div>
+      <p class="field-hint">Keyframe can't download YouTube video files — that would break YouTube's terms. Instead it finds highlight timestamps and gives you timestamped links back to the original video.</p>
+    </div>
+  </section>
+
+  <div class="method-row">
+    <span class="field-label">Highlight method</span>
+    <div class="method-toggle" role="radiogroup" aria-label="Highlight-finding method">
+      <button type="button" class="method-btn active" id="methodFree" role="radio" aria-checked="true">Free &mdash; pause detection</button>
+      <button type="button" class="method-btn" id="methodAi" role="radio" aria-checked="false">AI &mdash; needs API key</button>
+    </div>
+    <p class="method-hint" id="methodHint">Scans the video for natural pauses and spreads clips evenly across it. Runs on your device &mdash; no account, no cost.</p>
+  </div>
+
+  <section class="step" id="transcriptStep" aria-labelledby="step2Heading" hidden>
+    <h2 id="step2Heading"><span class="step-number">02</span> Add the transcript</h2>
+    <p class="field-hint">This is what the AI reads to find highlights. Timestamped lines like <code>[01:23] what was said</code> let it cut precisely — plain text works too, just less precisely.</p>
+    <details class="how-to">
+      <summary>Where do I get a transcript?</summary>
+      <ul>
+        <li><strong>YouTube</strong> — below the video, open the "···" menu → Show transcript, then copy the text.</li>
+        <li><strong>Zoom, podcast hosts, meeting tools</strong> — most can export one automatically.</li>
+        <li><strong>Nothing available?</strong> Paste your own rough notes with approximate timestamps.</li>
+      </ul>
+    </details>
+    <textarea id="transcriptInput" rows="8" placeholder="[00:00] Welcome to the show...&#10;[00:45] Today we're talking about..."></textarea>
+  </section>
+
+  <div class="action-row">
+    <button id="findHighlightsBtn" class="btn-primary" type="button">
+      <span>Find highlights</span>
+    </button>
+    <p id="statusMessage" class="status-message" role="status" aria-live="polite"></p>
+  </div>
+
+  <div class="scan-indicator" id="scanIndicator" hidden aria-hidden="true">
+    <div class="scan-bars">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <section class="results" id="resultsSection" hidden aria-labelledby="resultsHeading">
+    <h2 id="resultsHeading"><span class="step-number">03</span> Highlights</h2>
+    <div class="filmstrip-edge" aria-hidden="true"></div>
+    <div class="filmstrip" id="filmstrip"></div>
+    <div class="filmstrip-edge" aria-hidden="true"></div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <p>Everything runs in your browser — video never leaves your device, and your API key is only ever sent straight to Anthropic. See the <a href="README.md">README</a> for setup and limitations.</p>
+</footer>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
